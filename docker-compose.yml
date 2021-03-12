@@ -1,0 +1,42 @@
+version: "3"
+
+volumes:
+  go_plugins:
+
+services:
+  kong:
+    image: kong:latest
+
+    environment:
+      KONG_LOG_LEVEL: debug
+
+      KONG_DATABASE: "off"
+
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+
+      KONG_PROXY_LISTEN: 0.0.0.0:8080, 0.0.0.0:8443 ssl
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+
+      KONG_PLUGINSERVER_NAMES: go
+      KONG_PLUGINSERVER_GO_START_CMD: >
+        /go-plugins/go-pluginserver
+        -kong-prefix /usr/local/kong/
+        -plugins-directory /go-plugins
+      KONG_PLUGINSERVER_GO_QUERY_CMD: >
+        /go-plugins/go-pluginserver
+        -dump-all-plugins
+        -plugins-directory
+        /go-plugins
+    volumes:
+      - go_plugins:/go-plugins
+    depends_on:
+      - go-plugins
+
+  go-plugins:
+    build: go-plugins
+    volumes:
+      - "./go-plugins:/go-plugins"
+      - go_plugins:/tmp/go-plugins
